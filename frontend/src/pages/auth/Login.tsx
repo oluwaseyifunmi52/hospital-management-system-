@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   rememberMe: z.boolean().optional(),
 });
 
@@ -23,7 +23,7 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
+  const from = (location.state as { from?: { pathname: string } } | null | undefined)?.from?.pathname || '/dashboard';
 
   const {
     register,
@@ -43,8 +43,8 @@ export function Login() {
       login(result.tokens, result.user);
       toast.success('Welcome back!');
       navigate(from, { replace: true });
-    } catch (error: any) {
-      toast.error(error.message || 'Invalid credentials');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Invalid credentials');
     } finally {
       setIsLoading(false);
       setLoading(false);

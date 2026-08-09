@@ -1,6 +1,7 @@
 import { UserRole } from '../types/user';
 
 export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
+  super_admin: ['*'],
   admin: ['*'],
   doctor: [
     'patients:read',
@@ -19,6 +20,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     'chat:write',
     'video-consultation:read',
     'video-consultation:write',
+    'admissions:read',
+    'admissions:write',
+    'discharges:read',
+    'discharges:write',
   ],
   nurse: [
     'patients:read',
@@ -29,6 +34,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     'nursing-notes:read',
     'nursing-notes:write',
     'appointments:read',
+    'admissions:read',
+    'admissions:write',
+    'wards:read',
+    'beds:read',
   ],
   receptionist: [
     'patients:read',
@@ -37,6 +46,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     'appointments:write',
     'queue:read',
     'queue:write',
+    'admissions:read',
+    'billing:read',
   ],
   pharmacist: [
     'medicines:read',
@@ -47,14 +58,17 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     'inventory:write',
     'sales:read',
     'sales:write',
+    'pharmacy:read',
+    'pharmacy:write',
   ],
-  laboratory: [
+  lab_technician: [
     'lab-tests:read',
     'lab-tests:write',
     'lab-results:read',
     'lab-results:write',
     'sample-collection:read',
     'sample-collection:write',
+    'laboratory:read',
   ],
   radiologist: [
     'radiology:read',
@@ -70,6 +84,22 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     'refunds:read',
     'refunds:write',
     'reports:read',
+    'billing:read',
+    'billing:write',
+    'finance:read',
+    'finance:write',
+  ],
+  hr: [
+    'staff:read',
+    'staff:write',
+    'attendance:read',
+    'attendance:write',
+    'leave:read',
+    'leave:write',
+    'payroll:read',
+    'payroll:write',
+    'hr:read',
+    'hr:write',
   ],
   ambulance_driver: [
     'emergencies:read',
@@ -98,27 +128,31 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
 };
 
 export const ROLE_DASHBOARD_ROUTES: Record<UserRole, string> = {
+  super_admin: '/dashboard/admin',
   admin: '/dashboard/admin',
   doctor: '/dashboard/doctor',
   nurse: '/dashboard/nurse',
   receptionist: '/dashboard/receptionist',
   pharmacist: '/dashboard/pharmacy',
-  laboratory: '/dashboard/laboratory',
+  lab_technician: '/dashboard/laboratory',
   radiologist: '/dashboard/radiology',
   accountant: '/dashboard/accountant',
+  hr: '/dashboard/hr',
   ambulance_driver: '/dashboard/ambulance',
   patient: '/dashboard/patient',
 };
 
 export const ROLE_LABELS: Record<UserRole, string> = {
+  super_admin: 'Super Administrator',
   admin: 'Administrator',
   doctor: 'Doctor',
   nurse: 'Nurse',
   receptionist: 'Receptionist',
   pharmacist: 'Pharmacist',
-  laboratory: 'Laboratory Staff',
+  lab_technician: 'Laboratory Staff',
   radiologist: 'Radiologist',
   accountant: 'Accountant',
+  hr: 'HR Personnel',
   ambulance_driver: 'Ambulance Driver',
   patient: 'Patient',
 };

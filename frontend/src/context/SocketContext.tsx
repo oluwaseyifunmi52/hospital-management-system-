@@ -17,7 +17,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated || !tokens) return;
 
-    const socketInstance = io((import.meta as any).env.VITE_SOCKET_URL || 'http://localhost:5000', {
+    const socketInstance = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
       auth: { token: tokens.accessToken },
       transports: ['websocket', 'polling'],
     });

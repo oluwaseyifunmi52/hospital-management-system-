@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../hooks/useAuth';
 import { doctorService } from '../../services/doctor.service';
 import type { DoctorProfile, AvailabilityStatus } from '../../types/doctor';
 import {
@@ -16,7 +15,6 @@ const statusConfig: Record<AvailabilityStatus, { label: string; color: string; d
 };
 
 export function Profile() {
-  useAuth();
   const [profile, setProfile] = useState<DoctorProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,8 +22,8 @@ export function Profile() {
     try {
       const data = await doctorService.getProfile();
       setProfile(data);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to load profile');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load profile');
     } finally {
       setLoading(false);
     }
@@ -40,8 +38,8 @@ export function Profile() {
       const updated = await doctorService.updateAvailability(status);
       setProfile(updated);
       toast.success('Status updated');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update status');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update status');
     }
   };
 
@@ -118,7 +116,7 @@ export function Profile() {
           <div className="card p-6">
             <h3 className="text-lg font-semibold text-secondary-900 mb-3">Expertise</h3>
             <div className="flex flex-wrap gap-2">
-              {profile.expertise.map((item) => (
+              {(profile.expertise ?? []).map((item) => (
                 <span key={item} className="badge-primary">{item}</span>
               ))}
             </div>
@@ -128,7 +126,7 @@ export function Profile() {
           <div className="card p-6">
             <h3 className="text-lg font-semibold text-secondary-900 mb-3">Services</h3>
             <div className="space-y-3">
-              {profile.services.map((service) => (
+              {(profile.services ?? []).map((service) => (
                 <div key={service.id} className="flex items-center justify-between p-3 rounded-lg border border-secondary-200 hover:bg-secondary-50">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-lg bg-primary-50 flex items-center justify-center">
@@ -153,18 +151,18 @@ export function Profile() {
           <div className="card p-6">
             <h3 className="text-lg font-semibold text-secondary-900 mb-3">Qualifications</h3>
             <div className="space-y-2">
-              {profile.qualifications.map((q) => (
+              {(profile.qualifications ?? []).map((q) => (
                 <div key={q} className="flex items-center gap-2 text-secondary-600">
                   <div className="h-2 w-2 rounded-full bg-primary-500" />
                   {q}
                 </div>
               ))}
             </div>
-            {profile.certifications.length > 0 && (
+            {(profile.certifications?.length ?? 0) > 0 && (
               <>
                 <h4 className="text-sm font-semibold text-secondary-700 mt-4 mb-2">Certifications</h4>
                 <div className="space-y-2">
-                  {profile.certifications.map((c) => (
+                  {(profile.certifications ?? []).map((c) => (
                     <div key={c} className="flex items-center gap-2 text-secondary-600">
                       <Award className="h-4 w-4 text-primary-500" />
                       {c}
@@ -200,18 +198,18 @@ export function Profile() {
             <div className="flex items-center gap-2 mb-3">
               <CircleDot className="h-4 w-4 text-primary-600" />
               <span className="text-sm font-medium text-secondary-700">
-                {profile.workingDays.map(d => d.slice(0, 3)).join(', ')}
+                {(profile.workingDays ?? []).map(d => d.slice(0, 3)).join(', ')}
               </span>
             </div>
             <div className="flex items-center gap-2 mb-3">
               <Clock className="h-4 w-4 text-primary-600" />
               <span className="text-sm text-secondary-700">
-                {profile.workingHours.start} - {profile.workingHours.end}
+                {profile.workingHours?.start} - {profile.workingHours?.end}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <Languages className="h-4 w-4 text-primary-600" />
-              <span className="text-sm text-secondary-700">{profile.languages.join(', ')}</span>
+              <span className="text-sm text-secondary-700">{(profile.languages ?? []).join(', ')}</span>
             </div>
           </div>
 

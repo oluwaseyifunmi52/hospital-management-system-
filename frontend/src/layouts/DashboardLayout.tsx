@@ -2,55 +2,61 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { ROLE_DASHBOARD_ROUTES, ROLE_LABELS } from '../constants/roles';
 import { LayoutDashboard, Users, User, Calendar, FileText, Pill, FlaskConical, Scan, DollarSign, Truck, Settings, Menu, X, UserCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useState, ComponentType } from 'react';
 
-const roleNavigation: Record<string, { name: string; href: string; icon: any }[]> = {
+const roleNavigation: Record<string, { name: string; href: string; icon: ComponentType<{ className?: string }> }[]> = {
   admin: [
-    { name: 'Users', href: '/dashboard/admin/users', icon: Users },
-    { name: 'Doctors', href: '/dashboard/admin/doctors', icon: User },
+    { name: 'Dashboard', href: '/dashboard/admin', icon: LayoutDashboard },
     { name: 'Patients', href: '/dashboard/admin/patients', icon: Users },
+    { name: 'Doctors', href: '/dashboard/admin/doctors', icon: User },
+    { name: 'Staff', href: '/dashboard/admin/staff', icon: UserCheck },
     { name: 'Staff Requests', href: '/dashboard/admin/staff-requests', icon: UserCheck },
     { name: 'Appointments', href: '/dashboard/admin/appointments', icon: Calendar },
-    { name: 'Settings', href: '/dashboard/admin/settings', icon: Settings },
+    { name: 'Pharmacy', href: '/dashboard/admin/pharmacy', icon: Pill },
+    { name: 'Laboratory', href: '/dashboard/admin/laboratory', icon: FlaskConical },
+    { name: 'Billing', href: '/dashboard/admin/billing', icon: DollarSign },
+    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ],
   doctor: [
+    { name: 'Dashboard', href: '/dashboard/doctor', icon: LayoutDashboard },
     { name: 'My Profile', href: '/dashboard/doctor/profile', icon: User },
-    { name: 'My Patients', href: '/dashboard/doctor/patients', icon: Users },
     { name: 'Appointments', href: '/dashboard/doctor/appointments', icon: Calendar },
+    { name: 'Patients', href: '/dashboard/doctor/patients', icon: Users },
     { name: 'Medical Records', href: '/dashboard/doctor/medical-records', icon: FileText },
-    { name: 'Prescriptions', href: '/dashboard/doctor/prescriptions', icon: Pill },
-    { name: 'Messages', href: '/dashboard/doctor/messages', icon: Pill },
   ],
   patient: [
+    { name: 'Dashboard', href: '/dashboard/patient', icon: LayoutDashboard },
     { name: 'Appointments', href: '/dashboard/patient/appointments', icon: Calendar },
-    { name: 'Medical Records', href: '/dashboard/patient/medical-records', icon: FileText },
+    { name: 'Medical Records', href: '/dashboard/patient/records', icon: FileText },
     { name: 'Prescriptions', href: '/dashboard/patient/prescriptions', icon: Pill },
-    { name: 'Messages', href: '/dashboard/patient/messages', icon: Pill },
   ],
   nurse: [
+    { name: 'Dashboard', href: '/dashboard/nurse', icon: LayoutDashboard },
     { name: 'Assigned Patients', href: '/dashboard/nurse/patients', icon: Users },
     { name: 'Vital Signs', href: '/dashboard/nurse/vitals', icon: Pill },
-    { name: 'Medications', href: '/dashboard/nurse/medications', icon: Pill },
   ],
   pharmacist: [
-    { name: 'Inventory', href: '/dashboard/pharmacy/inventory', icon: Pill },
+    { name: 'Dashboard', href: '/dashboard/pharmacy', icon: LayoutDashboard },
+    { name: 'Inventory', href: '/dashboard/pharmacy', icon: Pill },
     { name: 'Prescriptions', href: '/dashboard/pharmacy/prescriptions', icon: FileText },
-    { name: 'Sales', href: '/dashboard/pharmacy/sales', icon: DollarSign },
   ],
   laboratory: [
+    { name: 'Dashboard', href: '/dashboard/laboratory', icon: LayoutDashboard },
     { name: 'Test Requests', href: '/dashboard/laboratory/requests', icon: FlaskConical },
     { name: 'Results', href: '/dashboard/laboratory/results', icon: FileText },
   ],
   radiologist: [
+    { name: 'Dashboard', href: '/dashboard/radiology', icon: LayoutDashboard },
     { name: 'Requests', href: '/dashboard/radiology/requests', icon: Scan },
     { name: 'Reports', href: '/dashboard/radiology/reports', icon: FileText },
   ],
   accountant: [
+    { name: 'Dashboard', href: '/dashboard/accountant', icon: LayoutDashboard },
     { name: 'Invoices', href: '/dashboard/accountant/invoices', icon: FileText },
     { name: 'Payments', href: '/dashboard/accountant/payments', icon: DollarSign },
-    { name: 'Reports', href: '/dashboard/accountant/reports', icon: FileText },
   ],
   ambulance_driver: [
+    { name: 'Dashboard', href: '/dashboard/ambulance', icon: LayoutDashboard },
     { name: 'Emergencies', href: '/dashboard/ambulance/emergencies', icon: Truck },
     { name: 'Active Trips', href: '/dashboard/ambulance/trips', icon: Truck },
   ],

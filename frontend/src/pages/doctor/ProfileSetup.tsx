@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, UseFormRegister, FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../../hooks/useAuth';
@@ -35,6 +35,50 @@ const profileSchema = z.object({
 });
 
 type ProfileForm = z.infer<typeof profileSchema>;
+
+interface PersonalStepProps {
+  formValues: ProfileForm;
+  register: UseFormRegister<ProfileForm>;
+  errors: FieldErrors<ProfileForm>;
+}
+
+interface ProfessionalStepProps {
+  formValues: ProfileForm;
+  register: UseFormRegister<ProfileForm>;
+  errors: FieldErrors<ProfileForm>;
+  newQualification: string;
+  setNewQualification: (value: string) => void;
+  newCertification: string;
+  setNewCertification: (value: string) => void;
+  newExpertise: string;
+  setNewExpertise: (value: string) => void;
+  addListItem: (field: 'qualifications' | 'certifications' | 'expertise', value: string, setter: (v: string) => void) => void;
+  removeListItem: (field: 'qualifications' | 'certifications' | 'expertise', index: number) => void;
+  toggleLanguage: (lang: string) => void;
+}
+
+interface TagInputProps {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  items: string[];
+  field: 'qualifications' | 'certifications' | 'expertise';
+  addListItem: (field: 'qualifications' | 'certifications' | 'expertise', value: string, setter: (v: string) => void) => void;
+  removeListItem: (field: 'qualifications' | 'certifications' | 'expertise', index: number) => void;
+  error?: string;
+  variant?: 'primary' | 'secondary' | 'info';
+}
+
+interface ServicesStepProps {
+  register: UseFormRegister<ProfileForm>;
+}
+
+interface AvailabilityStepProps {
+  formValues: ProfileForm;
+  register: UseFormRegister<ProfileForm>;
+  toggleWorkingDay: (day: string) => void;
+}
 
 const STEPS = [
   { label: 'Personal', description: 'Basic info' },
@@ -153,13 +197,13 @@ export function ProfileSetup() {
   };
 
   const nextStep = async () => {
-    let fieldsToValidate: string[] = [];
+    let fieldsToValidate: Array<keyof ProfileForm> = [];
     if (currentStep === 0) fieldsToValidate = ['firstName', 'lastName', 'phone', 'email'];
     if (currentStep === 1) fieldsToValidate = ['title', 'specialty', 'department', 'licenseNumber', 'yearsExperience', 'qualifications', 'expertise', 'languages'];
     if (currentStep === 2) fieldsToValidate = ['consultationFee'];
     if (currentStep === 3) fieldsToValidate = ['workingDays', 'workingHoursStart', 'workingHoursEnd'];
 
-    const valid = await trigger(fieldsToValidate as any);
+    const valid = await trigger(fieldsToValidate);
     if (valid && currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     }
@@ -192,11 +236,11 @@ export function ProfileSetup() {
         videoConsultation: data.videoConsultation,
         workingDays: data.workingDays,
         workingHours: { start: data.workingHoursStart, end: data.workingHoursEnd },
-      } as any);
+      });
       toast.success('Profile setup complete!');
       navigate('/dashboard/doctor');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save profile');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save profile');
     } finally {
       setIsLoading(false);
     }
@@ -260,7 +304,7 @@ export function ProfileSetup() {
   );
 }
 
-function PersonalStep({ formValues, register, errors }: any) {
+function PersonalStep({ formValues, register, errors }: PersonalStepProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -303,7 +347,7 @@ function PersonalStep({ formValues, register, errors }: any) {
   );
 }
 
-function ProfessionalStep({ formValues, register, errors, newQualification, setNewQualification, newCertification, setNewCertification, newExpertise, setNewExpertise, addListItem, removeListItem, toggleLanguage }: any) {
+function ProfessionalStep({ formValues, register, errors, newQualification, setNewQualification, newCertification, setNewCertification, newExpertise, setNewExpertise, addListItem, removeListItem, toggleLanguage }: ProfessionalStepProps) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
@@ -364,7 +408,7 @@ function ProfessionalStep({ formValues, register, errors, newQualification, setN
   );
 }
 
-function TagInput({ label, placeholder, value, onChange, items, field, addListItem, removeListItem, error, variant = 'primary' }: any) {
+function TagInput({ label, placeholder, value, onChange, items, field, addListItem, removeListItem, error, variant = 'primary' }: TagInputProps) {
   const badgeClass = variant === 'secondary' ? 'badge-secondary' : variant === 'info' ? 'badge-info' : 'badge-primary';
   return (
     <div>
@@ -387,7 +431,7 @@ function TagInput({ label, placeholder, value, onChange, items, field, addListIt
   );
 }
 
-function ServicesStep({ register }: any) {
+function ServicesStep({ register }: ServicesStepProps) {
   return (
     <div className="space-y-6">
       <div>
@@ -418,7 +462,7 @@ function ServicesStep({ register }: any) {
   );
 }
 
-function AvailabilityStep({ formValues, register, toggleWorkingDay }: any) {
+function AvailabilityStep({ formValues, register, toggleWorkingDay }: AvailabilityStepProps) {
   return (
     <div className="space-y-6">
       <div>

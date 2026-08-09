@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 
 export function VerifyEmail() {
   const location = useLocation();
-  const email = (location.state as any)?.email || '';
+  const email = (location.state as { email?: string } | null | undefined)?.email || '';
 
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,8 +29,8 @@ export function VerifyEmail() {
       await authService.verifyEmail(email, otpValue);
       setIsVerified(true);
       toast.success('Email verified successfully!');
-    } catch (error: any) {
-      toast.error(error.message || 'Invalid OTP. Please try again.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Invalid OTP. Please try again.');
       setOtp('');
     } finally {
       setIsLoading(false);
@@ -50,8 +50,8 @@ export function VerifyEmail() {
       await authService.resendOTP(email);
       toast.success('A new OTP has been sent to your email.');
       setResendTimer(60);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to resend OTP');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to resend OTP');
     } finally {
       setIsResending(false);
     }

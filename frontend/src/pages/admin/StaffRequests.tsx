@@ -5,7 +5,7 @@ import { ROLE_LABELS } from '../../constants/roles';
 import { CheckCircle, XCircle, Clock, Eye, Search, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const statusStyles: Record<StaffRequestStatus, { badge: string; icon: any; label: string }> = {
+const statusStyles: Record<StaffRequestStatus, { badge: string; icon: React.ComponentType<{ className?: string }>; label: string }> = {
   pending: { badge: 'badge-warning', icon: Clock, label: 'Pending' },
   approved: { badge: 'badge-success', icon: CheckCircle, label: 'Approved' },
   rejected: { badge: 'badge-danger', icon: XCircle, label: 'Rejected' },
@@ -34,8 +34,8 @@ export function StaffRequests() {
       setRequests(result.data);
       setTotalPages(result.pagination.pages);
       setTotal(result.pagination.total);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to load requests');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load requests');
     } finally {
       setLoading(false);
     }
@@ -56,8 +56,8 @@ export function StaffRequests() {
       toast.success('Staff request approved');
       setSelectedRequest(null);
       loadRequests();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to approve');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to approve');
     } finally {
       setActionLoading(null);
     }
@@ -70,8 +70,8 @@ export function StaffRequests() {
       toast.success('Staff request rejected');
       setSelectedRequest(null);
       loadRequests();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to reject');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to reject');
     } finally {
       setActionLoading(null);
     }

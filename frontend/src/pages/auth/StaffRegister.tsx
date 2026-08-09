@@ -8,7 +8,7 @@ import { ROLE_LABELS } from '../../constants/roles';
 import { Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const staffRoles = ['doctor', 'nurse', 'receptionist', 'pharmacist', 'laboratory', 'radiologist', 'accountant', 'ambulance_driver'] as const;
+const staffRoles = ['doctor', 'nurse', 'receptionist', 'pharmacist', 'lab_technician', 'radiologist', 'accountant', 'hr', 'ambulance_driver'] as const;
 
 const staffRegisterSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
@@ -54,8 +54,8 @@ export function StaffRegister() {
 
       toast.success(result.message || 'Request submitted!');
       setIsSubmitted(true);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to submit request');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to submit request');
     } finally {
       setIsLoading(false);
     }

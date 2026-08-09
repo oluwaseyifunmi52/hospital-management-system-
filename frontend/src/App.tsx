@@ -5,11 +5,26 @@ import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
 import { StaffRegister } from './pages/auth/StaffRegister';
 import { VerifyEmail } from './pages/auth/VerifyEmail';
+import { ForgotPassword } from './pages/auth/ForgotPassword';
+import { ResetPassword } from './pages/auth/ResetPassword';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { RoleRoute } from './routes/RoleRoute';
 import { ProfileSetup } from './pages/doctor/ProfileSetup';
 import { Profile as DoctorProfile } from './pages/doctor/Profile';
 import { StaffRequests } from './pages/admin/StaffRequests';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { DoctorDashboard } from './pages/doctor/DoctorDashboard';
+import { PatientDashboard } from './pages/patient/PatientDashboard';
+import { Settings } from './pages/settings/Settings';
+import { Patients } from './pages/patients/Patients';
+import { PatientDetail } from './pages/patients/PatientDetail';
+import { PatientForm } from './pages/patients/PatientForm';
+import { Appointments } from './pages/appointments/Appointments';
+import { Doctors } from './pages/doctors/Doctors';
+import { StaffPage } from './pages/staff/Staff';
+import { Pharmacy } from './pages/pharmacy/Pharmacy';
+import { Laboratory } from './pages/laboratory/Laboratory';
+import { Billing } from './pages/billing/Billing';
 
 function AppRoutes() {
   const { isLoading } = useAuth();
@@ -28,16 +43,30 @@ function AppRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/staff-register" element={<StaffRegister />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard/*" element={<DashboardLayout />}>
-          <Route index element={<Navigate to="/dashboard/patient" replace />} />
+          <Route index element={<Navigate to="/dashboard/admin" replace />} />
 
-          {/* Patient */}
+          {/* Admin */}
           <Route
-            path="patient/*"
+            path="admin/*"
             element={
-              <RoleRoute allowedRoles={['patient']}>
-                <div className="p-4">Patient Dashboard</div>
+              <RoleRoute allowedRoles={['admin']}>
+                <Routes>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="staff-requests" element={<StaffRequests />} />
+                  <Route path="patients" element={<Patients onViewPatient={() => {}} onCreatePatient={() => {}} />} />
+                  <Route path="patients/:id" element={<PatientDetail />} />
+                  <Route path="patients/new" element={<PatientForm isOpen={true} onClose={() => {}} onSubmit={() => {}} />} />
+                  <Route path="doctors" element={<Doctors onCreateDoctor={() => {}} onViewDoctor={() => {}} />} />
+                  <Route path="staff" element={<StaffPage onCreateStaff={() => {}} onViewStaff={() => {}} />} />
+                  <Route path="appointments" element={<Appointments onCreateAppointment={() => {}} onViewAppointment={() => {}} />} />
+                  <Route path="pharmacy" element={<Pharmacy onCreateMedicine={() => {}} onViewMedicine={() => {}} onCreatePrescription={() => {}} />} />
+                  <Route path="laboratory" element={<Laboratory onCreateTest={() => {}} onViewTest={() => {}} />} />
+                  <Route path="billing" element={<Billing onCreateInvoice={() => {}} onViewInvoice={() => {}} />} />
+                </Routes>
               </RoleRoute>
             }
           />
@@ -48,28 +77,34 @@ function AppRoutes() {
             element={
               <RoleRoute allowedRoles={['doctor']}>
                 <Routes>
-                  <Route index element={<div className="p-4">Doctor Dashboard</div>} />
+                  <Route index element={<DoctorDashboard />} />
                   <Route path="profile" element={<DoctorProfile />} />
                   <Route path="profile/setup" element={<ProfileSetup />} />
+                  <Route path="appointments" element={<Appointments onCreateAppointment={() => {}} onViewAppointment={() => {}} />} />
+                  <Route path="patients" element={<Patients onViewPatient={() => {}} onCreatePatient={() => {}} />} />
                 </Routes>
               </RoleRoute>
             }
           />
 
-          {/* Admin */}
+          {/* Patient */}
           <Route
-            path="admin/*"
+            path="patient/*"
             element={
-              <RoleRoute allowedRoles={['admin']}>
+              <RoleRoute allowedRoles={['patient']}>
                 <Routes>
-                  <Route index element={<div className="p-4">Admin Dashboard</div>} />
-                  <Route path="staff-requests" element={<StaffRequests />} />
+                  <Route index element={<PatientDashboard />} />
+                  <Route path="appointments" element={<Appointments onCreateAppointment={() => {}} onViewAppointment={() => {}} />} />
+                  <Route path="records" element={<PatientDetail />} />
                 </Routes>
               </RoleRoute>
             }
           />
 
-          {/* Other role dashboards */}
+          {/* Settings */}
+          <Route path="settings" element={<Settings />} />
+
+          {/* Nurse */}
           <Route
             path="nurse/*"
             element={
@@ -78,22 +113,28 @@ function AppRoutes() {
               </RoleRoute>
             }
           />
+
+          {/* Pharmacy */}
           <Route
             path="pharmacy/*"
             element={
               <RoleRoute allowedRoles={['pharmacist']}>
-                <div className="p-4">Pharmacist Dashboard</div>
+                <Pharmacy onCreateMedicine={() => {}} onViewMedicine={() => {}} onCreatePrescription={() => {}} />
               </RoleRoute>
             }
           />
+
+          {/* Laboratory */}
           <Route
             path="laboratory/*"
             element={
-              <RoleRoute allowedRoles={['laboratory']}>
-                <div className="p-4">Laboratory Dashboard</div>
+              <RoleRoute allowedRoles={['lab_technician']}>
+                <Laboratory onCreateTest={() => {}} onViewTest={() => {}} />
               </RoleRoute>
             }
           />
+
+          {/* Radiology */}
           <Route
             path="radiology/*"
             element={
@@ -102,14 +143,18 @@ function AppRoutes() {
               </RoleRoute>
             }
           />
+
+          {/* Accountant */}
           <Route
             path="accountant/*"
             element={
               <RoleRoute allowedRoles={['accountant']}>
-                <div className="p-4">Accountant Dashboard</div>
+                <Billing onCreateInvoice={() => {}} onViewInvoice={() => {}} />
               </RoleRoute>
             }
           />
+
+          {/* Ambulance */}
           <Route
             path="ambulance/*"
             element={
@@ -118,11 +163,13 @@ function AppRoutes() {
               </RoleRoute>
             }
           />
+
+          {/* Receptionist */}
           <Route
             path="receptionist/*"
             element={
               <RoleRoute allowedRoles={['receptionist']}>
-                <div className="p-4">Receptionist Dashboard</div>
+                <Appointments onCreateAppointment={() => {}} onViewAppointment={() => {}} />
               </RoleRoute>
             }
           />

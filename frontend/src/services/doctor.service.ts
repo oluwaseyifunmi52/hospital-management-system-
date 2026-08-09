@@ -12,8 +12,8 @@ export const doctorService = {
     try {
       const res = await api.get<ApiResponse<DoctorProfile>>('/doctor/profile');
       return res.data.data;
-    } catch (error: any) {
-      if (error.message?.includes('404')) return null;
+    } catch (error) {
+      if (error instanceof Error && error.message?.includes('404')) return null;
       throw error;
     }
   },

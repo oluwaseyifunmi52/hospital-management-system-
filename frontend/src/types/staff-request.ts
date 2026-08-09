@@ -1,4 +1,4 @@
-import { UserRole } from './user';
+import type { UserRole } from './common';
 
 export type StaffRequestStatus = 'pending' | 'approved' | 'rejected';
 
@@ -8,7 +8,7 @@ export interface StaffRequest {
   lastName: string;
   email: string;
   phone: string;
-  role: Exclude<UserRole, 'admin' | 'patient'>;
+  role: Exclude<UserRole, 'super_admin' | 'admin' | 'patient'>;
   status: StaffRequestStatus;
   reviewedBy?: string;
   reviewedAt?: string;

@@ -1,43 +1,6 @@
-export type AvailabilityStatus = 'available' | 'busy' | 'off_duty';
+export type { AvailabilityStatus, ServiceItem } from './common';
 
-export interface DoctorProfile {
-  userId: string;
-  profilePhoto?: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  email: string;
-  title: string;
-  specialty: string;
-  department: string;
-  licenseNumber: string;
-  yearsExperience: number;
-  qualifications: string[];
-  certifications: string[];
-  expertise: string[];
-  languages: string[];
-  bio: string;
-  services: ServiceItem[];
-  consultationFee: number;
-  inPersonConsultation: boolean;
-  videoConsultation: boolean;
-  workingDays: string[];
-  workingHours: { start: string; end: string };
-  availabilityStatus: AvailabilityStatus;
-  rating: number;
-  reviewCount: number;
-  isProfileComplete: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ServiceItem {
-  id: string;
-  name: string;
-  description?: string;
-  fee: number;
-  duration?: number;
-}
+export type { DoctorProfile } from './common';
 
 export const DEPARTMENTS = [
   'Cardiology',

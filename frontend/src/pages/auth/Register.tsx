@@ -56,8 +56,8 @@ export function Register() {
 
       toast.success(result.message || 'Account created! Please verify your email.');
       navigate('/verify-email', { state: { email: data.email }, replace: true });
-    } catch (error: any) {
-      toast.error(error.message || 'Registration failed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Registration failed');
     } finally {
       setIsLoading(false);
       setLoading(false);
