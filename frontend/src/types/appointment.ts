@@ -27,7 +27,7 @@ export interface AppointmentFilter {
   doctorId?: string;
   patientId?: string;
   departmentId?: string;
-  status?: AppointmentStatus;
+  status?: AppointmentStatus | 'all';
   type?: string;
   search?: string;
 }

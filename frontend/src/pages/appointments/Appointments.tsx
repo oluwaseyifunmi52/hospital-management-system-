@@ -1,44 +1,97 @@
-import { useState, useMemo } from 'react';
-import { Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Plus, Search, ChevronLeft, ChevronRight, Eye, Edit } from 'lucide-react';
 import { DataTable } from '../../components/data-table/DataTable';
 import { PageHeader } from '../../components/feedback/PageStates';
-import { StatusBadge } from '../../components/feedback/StatusBadge';
+import { LoadingState, EmptyState } from '../../components/feedback/PageStates';
+import { ConfirmDialog } from '../../components/modals/ConfirmDialog';
+import { appointmentService } from '../../services/appointment.service';
 import type { Appointment, AppointmentStatus } from '../../types/appointment';
+import { useNavigate } from 'react-router-dom';
+import { StatusBadge } from '../../components/feedback/StatusBadge';
+import toast from 'react-hot-toast';
 
-interface AppointmentsProps {
-  onCreateAppointment: () => void;
-  onViewAppointment: (appointment: Appointment) => void;
-}
-
-export function Appointments({ onCreateAppointment, onViewAppointment }: AppointmentsProps) {
+export function Appointments() {
+  const navigate = useNavigate();
   const [view, setView] = useState<'list' | 'calendar'>('list');
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'all'>('all');
   const [dateFilter, setDateFilter] = useState('today');
-  const [loading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; appointment: Appointment | null }>({ open: false, appointment: null });
 
-  const mockAppointments = useMemo<Appointment[]>(
-    () => [
-      { id: '1', appointmentNumber: 'APT-001', patientId: '1', doctorId: '1', date: '2024-06-15', startTime: '09:00', endTime: '09:30', type: 'consultation', status: 'scheduled', reason: 'Routine checkup', reminderSent: false, createdAt: '2024-06-10', updatedAt: '2024-06-10' },
-      { id: '2', appointmentNumber: 'APT-002', patientId: '2', doctorId: '1', date: '2024-06-15', startTime: '10:00', endTime: '10:30', type: 'follow_up', status: 'confirmed', reason: 'Follow-up visit', reminderSent: true, createdAt: '2024-06-10', updatedAt: '2024-06-10' },
-      { id: '3', appointmentNumber: 'APT-003', patientId: '3', doctorId: '2', date: '2024-06-15', startTime: '11:00', endTime: '11:30', type: 'consultation', status: 'completed', reason: 'New patient consultation', reminderSent: true, createdAt: '2024-06-10', updatedAt: '2024-06-10' },
-      { id: '4', appointmentNumber: 'APT-004', patientId: '4', doctorId: '2', date: '2024-06-15', startTime: '14:00', endTime: '14:30', type: 'emergency', status: 'cancelled', reason: 'Emergency visit', reminderSent: false, createdAt: '2024-06-10', updatedAt: '2024-06-10' },
-      { id: '5', appointmentNumber: 'APT-005', patientId: '5', doctorId: '3', date: '2024-06-16', startTime: '09:30', endTime: '10:00', type: 'checkup', status: 'scheduled', reason: 'Annual checkup', reminderSent: false, createdAt: '2024-06-10', updatedAt: '2024-06-10' },
-    ],
-    []
-  );
+  const fetchAppointments = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await appointmentService.getAppointments({
+        page,
+        limit: 10,
+        search: searchQuery,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        date: dateFilter === 'today' ? new Date().toISOString().split('T')[0] : dateFilter === 'all' ? undefined : dateFilter,
+      });
+      setAppointments(result.data);
+      setTotalPages(result.pagination.pages);
+      setTotal(result.pagination.total);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load appointments');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, searchQuery, statusFilter, dateFilter]);
 
-  const filteredAppointments = mockAppointments.filter((apt) => {
-    const matchesStatus = statusFilter === 'all' || apt.status === statusFilter;
-    const matchesDate = dateFilter === 'all' || apt.date === new Date().toISOString().split('T')[0];
-    const matchesSearch =
-      !searchQuery ||
-      apt.appointmentNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      apt.patientId.includes(searchQuery) ||
-      apt.doctorId.includes(searchQuery);
-    return matchesStatus && matchesDate && matchesSearch;
-  });
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
+
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    setPage(1);
+  };
+
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value as AppointmentStatus | 'all');
+    setPage(1);
+  };
+
+  const handleDateChange = (value: string) => {
+    setDateFilter(value);
+    setPage(1);
+  };
+
+  const handleViewAppointment = (appointment: Appointment) => {
+    navigate(`/dashboard/admin/appointments/${appointment.id}`);
+  };
+
+  const handleCreateAppointment = () => {
+    navigate('/dashboard/admin/appointments/new');
+  };
+
+  const handleEditAppointment = (e: React.MouseEvent, appointment: Appointment) => {
+    e.stopPropagation();
+    navigate(`/dashboard/admin/appointments/${appointment.id}/edit`);
+  };
+
+  const handleDeleteAppointment = (e: React.MouseEvent, appointment: Appointment) => {
+    e.stopPropagation();
+    setDeleteDialog({ open: true, appointment });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.appointment) return;
+    try {
+      // await appointmentService.deleteAppointment(deleteDialog.appointment.id); // Not implemented yet
+      toast.success('Appointment deleted');
+      setDeleteDialog({ open: false, appointment: null });
+      fetchAppointments();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete appointment');
+    }
+  };
 
   const weekDays = useMemo(() => {
     const days = [];
@@ -51,6 +104,17 @@ export function Appointments({ onCreateAppointment, onViewAppointment }: Appoint
     }
     return days;
   }, [currentWeek]);
+
+  const stats = useMemo(
+    () => ({
+      total: total,
+      scheduled: appointments.filter((a) => a.status === 'scheduled').length,
+      confirmed: appointments.filter((a) => a.status === 'confirmed').length,
+      completed: appointments.filter((a) => a.status === 'completed').length,
+      cancelled: appointments.filter((a) => a.status === 'cancelled').length,
+    }),
+    [appointments, total]
+  );
 
   const columns = [
     {
@@ -73,41 +137,46 @@ export function Appointments({ onCreateAppointment, onViewAppointment }: Appoint
       key: 'actions',
       header: 'Actions',
       render: (apt: Appointment) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewAppointment(apt);
-          }}
-          className="text-secondary-600 hover:text-secondary-900 text-sm font-medium"
-        >
-          View
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(_e) => handleViewAppointment(apt)}
+            className="p-1 text-secondary-600 hover:text-secondary-900"
+            title="View"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => handleEditAppointment(e, apt)}
+            className="p-1 text-secondary-600 hover:text-secondary-900"
+            title="Edit"
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => handleDeleteAppointment(e, apt)}
+            className="p-1 text-danger-600 hover:text-danger-900"
+            title="Delete"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v10m4-10v10m-10-10h14" />
+            </svg>
+          </button>
+        </div>
       ),
     },
   ];
-
-  const stats = useMemo(
-    () => ({
-      total: mockAppointments.length,
-      scheduled: mockAppointments.filter((a) => a.status === 'scheduled').length,
-      confirmed: mockAppointments.filter((a) => a.status === 'confirmed').length,
-      completed: mockAppointments.filter((a) => a.status === 'completed').length,
-      cancelled: mockAppointments.filter((a) => a.status === 'cancelled').length,
-    }),
-    [mockAppointments]
-  );
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Appointments"
-        subtitle={`${filteredAppointments.length} appointments found`}
+        subtitle={`${total} appointments found`}
         action={
-          <button onClick={onCreateAppointment} className="btn-primary">
+          <button onClick={handleCreateAppointment} className="btn-primary">
             <Plus className="h-4 w-4" /> New Appointment
           </button>
         }
-        breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Appointments' }]}
+        breadcrumbs={[{ label: 'Dashboard', href: '/dashboard/admin' }, { label: 'Appointments' }]}
       />
 
       {/* Stats */}
@@ -135,13 +204,13 @@ export function Appointments({ onCreateAppointment, onViewAppointment }: Appoint
               type="text"
               placeholder="Search appointments..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="input pl-10"
             />
           </div>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as AppointmentStatus | 'all')}
+            onChange={(e) => handleStatusChange(e.target.value as AppointmentStatus | 'all')}
             className="input w-40"
           >
             <option value="all">All Status</option>
@@ -151,7 +220,7 @@ export function Appointments({ onCreateAppointment, onViewAppointment }: Appoint
             <option value="cancelled">Cancelled</option>
             <option value="no_show">No Show</option>
           </select>
-          <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="input w-40">
+          <select value={dateFilter} onChange={(e) => handleDateChange(e.target.value)} className="input w-40">
             <option value="today">Today</option>
             <option value="tomorrow">Tomorrow</option>
             <option value="week">This Week</option>
@@ -175,14 +244,49 @@ export function Appointments({ onCreateAppointment, onViewAppointment }: Appoint
       </div>
 
       {view === 'list' ? (
-        <DataTable
-          columns={columns}
-          data={filteredAppointments}
-          loading={loading}
-          onRowClick={onViewAppointment}
-          emptyMessage="No appointments found"
-          rowKey={(apt) => apt.id}
-        />
+        loading ? (
+          <LoadingState message="Loading appointments..." />
+        ) : appointments.length === 0 ? (
+          <EmptyState
+            title="No appointments found"
+            description="Get started by creating a new appointment."
+            action={<button onClick={handleCreateAppointment} className="btn-primary">Create Appointment</button>}
+          />
+        ) : (
+          <>
+            <DataTable
+              columns={columns}
+              data={appointments}
+              loading={loading}
+              onRowClick={handleViewAppointment}
+              emptyMessage="No appointments found"
+              rowKey={(apt) => apt.id}
+            />
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-secondary-500">
+                  Page {page} of {totalPages} ({total} total)
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="btn-outline btn-sm"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="btn-outline btn-sm"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )
       ) : (
         <div className="card p-6">
           <div className="flex items-center justify-between mb-6">
@@ -204,7 +308,7 @@ export function Appointments({ onCreateAppointment, onViewAppointment }: Appoint
           </div>
           <div className="grid grid-cols-7 gap-4">
             {weekDays.map((day) => {
-              const dayAppointments = filteredAppointments.filter((apt) => apt.date === day.toISOString().split('T')[0]);
+              const dayAppointments = appointments.filter((apt) => apt.date === day.toISOString().split('T')[0]);
               const isToday = day.toDateString() === new Date().toDateString();
               return (
                 <div key={day.toISOString()} className={`min-h-[200px] p-2 rounded-lg border ${isToday ? 'border-primary-500 bg-primary-50' : 'border-secondary-200'}`}>
@@ -216,7 +320,7 @@ export function Appointments({ onCreateAppointment, onViewAppointment }: Appoint
                     {dayAppointments.map((apt) => (
                       <div
                         key={apt.id}
-                        onClick={() => onViewAppointment(apt)}
+                        onClick={() => handleViewAppointment(apt)}
                         className="p-2 rounded-lg bg-white border border-secondary-200 cursor-pointer hover:shadow-sm transition-shadow"
                       >
                         <p className="text-xs font-medium text-secondary-900">{apt.startTime}</p>
@@ -230,6 +334,18 @@ export function Appointments({ onCreateAppointment, onViewAppointment }: Appoint
             })}
           </div>
         </div>
+      )}
+
+      {deleteDialog.open && deleteDialog.appointment && (
+        <ConfirmDialog
+          isOpen={deleteDialog.open}
+          onClose={() => setDeleteDialog({ open: false, appointment: null })}
+          onConfirm={confirmDelete}
+          title="Delete Appointment"
+          message={`Are you sure you want to delete appointment ${deleteDialog.appointment.appointmentNumber}? This action cannot be undone.`}
+          confirmLabel="Delete"
+          variant="danger"
+        />
       )}
     </div>
   );

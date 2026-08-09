@@ -1,0 +1,14 @@
+export { authService } from './auth.service';
+export { doctorService } from './doctor.service';
+export { adminService } from './admin.service';
+export { patientService } from './patient.service';
+export { appointmentService } from './appointment.service';
+export { pharmacyService } from './pharmacy.service';
+export { laboratoryService } from './laboratory.service';
+export { billingService } from './billing.service';
+export { staffService } from './staff.service';
+export { medicalRecordService } from './medical-record.service';
+export { admissionService } from './admission.service';
+export { departmentService } from './department.service';
+export { notificationService } from './notification.service';
+export { financeService } from './finance.service';

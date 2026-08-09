@@ -1,112 +1,108 @@
-import { useState, useMemo } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Search, Eye, Edit } from 'lucide-react';
 import { DataTable } from '../../components/data-table/DataTable';
 import { PageHeader } from '../../components/feedback/PageStates';
-import { StatusBadge } from '../../components/feedback/StatusBadge';
+import { LoadingState, EmptyState } from '../../components/feedback/PageStates';
+import { ConfirmDialog } from '../../components/modals/ConfirmDialog';
+import { staffService } from '../../services/staff.service';
 import type { Staff } from '../../types/staff';
+import { useNavigate } from 'react-router-dom';
+import { StatusBadge } from '../../components/feedback/StatusBadge';
+import toast from 'react-hot-toast';
 
-interface StaffProps {
-  onCreateStaff: () => void;
-  onViewStaff: (staff: Staff) => void;
-}
-
-export function StaffPage({ onCreateStaff, onViewStaff }: StaffProps) {
+export function StaffPage() {
+  const navigate = useNavigate();
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [loading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; staff: Staff | null }>({ open: false, staff: null });
 
-  const mockStaff = useMemo<Staff[]>(
-    () => [
-      {
-        id: '1',
-        email: 'nurse.ade@hospital.com',
-        firstName: 'Adebayo',
-        lastName: 'Okafor',
-        phone: '+234 801 111 1111',
-        role: 'nurse',
-        status: 'active',
-        departmentId: '1',
-        position: 'Senior Nurse',
-        dateOfJoining: '2022-03-15',
-        isVerified: true,
-        isActive: true,
-        createdAt: '2022-03-15',
-        updatedAt: '2022-03-15',
-      },
-      {
-        id: '2',
-        email: 'pharm.bello@hospital.com',
-        firstName: 'Fatima',
-        lastName: 'Bello',
-        phone: '+234 802 222 2222',
-        role: 'pharmacist',
-        status: 'active',
-        departmentId: '2',
-        position: 'Chief Pharmacist',
-        dateOfJoining: '2021-07-20',
-        isVerified: true,
-        isActive: true,
-        createdAt: '2021-07-20',
-        updatedAt: '2021-07-20',
-      },
-      {
-        id: '3',
-        email: 'lab.tech@hospital.com',
-        firstName: 'Emeka',
-        lastName: 'Nnamdi',
-        phone: '+234 803 333 3333',
-        role: 'lab_technician',
-        status: 'on_leave',
-        departmentId: '3',
-        position: 'Lab Technician',
-        dateOfJoining: '2023-01-10',
-        isVerified: true,
-        isActive: true,
-        createdAt: '2023-01-10',
-        updatedAt: '2023-01-10',
-      },
-      {
-        id: '4',
-        email: 'receptionist@hospital.com',
-        firstName: 'Chidinma',
-        lastName: 'Eze',
-        phone: '+234 804 444 4444',
-        role: 'receptionist',
-        status: 'active',
-        position: 'Senior Receptionist',
-        dateOfJoining: '2022-09-05',
-        isVerified: true,
-        isActive: true,
-        createdAt: '2022-09-05',
-        updatedAt: '2022-09-05',
-      },
-    ],
-    []
-  );
+  const fetchStaff = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await staffService.getStaff({
+        page,
+        limit: 10,
+        search: searchQuery,
+        role: roleFilter === 'all' ? undefined : roleFilter,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+      });
+      setStaff(result.data);
+      setTotalPages(result.pagination.pages);
+      setTotal(result.pagination.total);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load staff');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, searchQuery, roleFilter, statusFilter]);
 
-  const filteredStaff = mockStaff.filter((staff) => {
-    const matchesSearch =
-      !searchQuery ||
-      `${staff.firstName} ${staff.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      staff.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === 'all' || staff.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || staff.status === statusFilter;
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  useEffect(() => {
+    fetchStaff();
+  }, [fetchStaff]);
+
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    setPage(1);
+  };
+
+  const handleRoleChange = (value: string) => {
+    setRoleFilter(value);
+    setPage(1);
+  };
+
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
+
+  const handleViewStaff = (member: Staff) => {
+    navigate(`/dashboard/admin/staff/${member.id}`);
+  };
+
+  const handleCreateStaff = () => {
+    navigate('/dashboard/admin/staff/new');
+  };
+
+  const handleEditStaff = (e: React.MouseEvent, member: Staff) => {
+    e.stopPropagation();
+    navigate(`/dashboard/admin/staff/${member.id}/edit`);
+  };
+
+  const handleDeleteStaff = (e: React.MouseEvent, member: Staff) => {
+    e.stopPropagation();
+    setDeleteDialog({ open: true, staff: member });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.staff) return;
+    try {
+      // await staffService.deleteStaff(deleteDialog.staff.id); // Not implemented yet
+      toast.success('Staff member deleted');
+      setDeleteDialog({ open: false, staff: null });
+      fetchStaff();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete staff member');
+    }
+  };
 
   const columns = [
     {
       key: 'name',
       header: 'Name',
-      render: (staff: Staff) => (
+      render: (member: Staff) => (
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-medium">
-            {staff.firstName[0]}{staff.lastName[0]}
+            {member.firstName[0]}{member.lastName[0]}
           </div>
           <div>
-            <p className="font-medium text-secondary-900">{staff.firstName} {staff.lastName}</p>
-            <p className="text-sm text-secondary-500">{staff.email}</p>
+            <p className="font-medium text-secondary-900">{member.firstName} {member.lastName}</p>
+            <p className="text-sm text-secondary-500">{member.email}</p>
           </div>
         </div>
       ),
@@ -114,33 +110,49 @@ export function StaffPage({ onCreateStaff, onViewStaff }: StaffProps) {
     {
       key: 'role',
       header: 'Role',
-      render: (staff: Staff) => <span className="capitalize">{staff.role.replace('_', ' ')}</span>,
+      render: (member: Staff) => <span className="capitalize">{member.role.replace('_', ' ')}</span>,
     },
     { key: 'position', header: 'Position' },
     { key: 'phone', header: 'Phone' },
     {
       key: 'status',
       header: 'Status',
-      render: (staff: Staff) => <StatusBadge status={staff.status} />,
+      render: (member: Staff) => <StatusBadge status={member.status} />,
     },
     {
       key: 'dateOfJoining',
       header: 'Joined',
-      render: (staff: Staff) => (staff.dateOfJoining ? new Date(staff.dateOfJoining).toLocaleDateString() : 'N/A'),
+      render: (member: Staff) => (member.dateOfJoining ? new Date(member.dateOfJoining).toLocaleDateString() : 'N/A'),
     },
     {
       key: 'actions',
       header: 'Actions',
-      render: (staff: Staff) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewStaff(staff);
-          }}
-          className="text-secondary-600 hover:text-secondary-900 text-sm font-medium"
-        >
-          View
-        </button>
+      render: (member: Staff) => (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(_e) => handleViewStaff(member)}
+            className="p-1 text-secondary-600 hover:text-secondary-900"
+            title="View"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => handleEditStaff(e, member)}
+            className="p-1 text-secondary-600 hover:text-secondary-900"
+            title="Edit"
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => handleDeleteStaff(e, member)}
+            className="p-1 text-danger-600 hover:text-danger-900"
+            title="Delete"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v10m4-10v10m-10-10h14" />
+            </svg>
+          </button>
+        </div>
       ),
     },
   ];
@@ -149,13 +161,13 @@ export function StaffPage({ onCreateStaff, onViewStaff }: StaffProps) {
     <div className="space-y-6">
       <PageHeader
         title="Staff"
-        subtitle={`${filteredStaff.length} staff members`}
+        subtitle={`${total} staff members`}
         action={
-          <button onClick={onCreateStaff} className="btn-primary">
+          <button onClick={handleCreateStaff} className="btn-primary">
             <Plus className="h-4 w-4" /> Add Staff
           </button>
         }
-        breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Staff' }]}
+        breadcrumbs={[{ label: 'Dashboard', href: '/dashboard/admin' }, { label: 'Staff' }]}
       />
 
       <div className="card p-4">
@@ -166,11 +178,11 @@ export function StaffPage({ onCreateStaff, onViewStaff }: StaffProps) {
               type="text"
               placeholder="Search staff..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="input pl-10"
             />
           </div>
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="input w-40">
+          <select value={roleFilter} onChange={(e) => handleRoleChange(e.target.value)} className="input w-40">
             <option value="all">All Roles</option>
             <option value="doctor">Doctor</option>
             <option value="nurse">Nurse</option>
@@ -180,8 +192,9 @@ export function StaffPage({ onCreateStaff, onViewStaff }: StaffProps) {
             <option value="accountant">Accountant</option>
             <option value="receptionist">Receptionist</option>
             <option value="hr">HR</option>
+            <option value="ambulance_driver">Ambulance Driver</option>
           </select>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-40">
+          <select value={statusFilter} onChange={(e) => handleStatusChange(e.target.value)} className="input w-40">
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
@@ -190,14 +203,60 @@ export function StaffPage({ onCreateStaff, onViewStaff }: StaffProps) {
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filteredStaff}
-        loading={loading}
-        onRowClick={onViewStaff}
-        emptyMessage="No staff found"
-        rowKey={(staff) => staff.id}
-      />
+      {loading ? (
+        <LoadingState message="Loading staff..." />
+      ) : staff.length === 0 ? (
+        <EmptyState
+          title="No staff found"
+          description="Get started by adding a new staff member."
+          action={<button onClick={handleCreateStaff} className="btn-primary">Add Staff</button>}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={staff}
+          loading={loading}
+          onRowClick={handleViewStaff}
+          emptyMessage="No staff found"
+          rowKey={(member) => member.id}
+        />
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-secondary-500">
+            Page {page} of {totalPages} ({total} total)
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="btn-outline btn-sm"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="btn-outline btn-sm"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
+      {deleteDialog.open && deleteDialog.staff && (
+        <ConfirmDialog
+          isOpen={deleteDialog.open}
+          onClose={() => setDeleteDialog({ open: false, staff: null })}
+          onConfirm={confirmDelete}
+          title="Delete Staff Member"
+          message={`Are you sure you want to delete ${deleteDialog.staff.firstName} ${deleteDialog.staff.lastName}? This action cannot be undone.`}
+          confirmLabel="Delete"
+          variant="danger"
+        />
+      )}
     </div>
   );
 }

@@ -18,13 +18,19 @@ import { PatientDashboard } from './pages/patient/PatientDashboard';
 import { Settings } from './pages/settings/Settings';
 import { Patients } from './pages/patients/Patients';
 import { PatientDetail } from './pages/patients/PatientDetail';
-import { PatientForm } from './pages/patients/PatientForm';
+import { PatientFormPage } from './pages/patients/PatientFormPage';
 import { Appointments } from './pages/appointments/Appointments';
 import { Doctors } from './pages/doctors/Doctors';
 import { StaffPage } from './pages/staff/Staff';
 import { Pharmacy } from './pages/pharmacy/Pharmacy';
 import { Laboratory } from './pages/laboratory/Laboratory';
 import { Billing } from './pages/billing/Billing';
+import { MedicalRecords } from './pages/medical-records/MedicalRecords';
+import { MedicalRecordDetail } from './pages/medical-records/MedicalRecordDetail';
+import { Admissions } from './pages/admissions/Admissions';
+import { AdmissionDetail } from './pages/admissions/AdmissionDetail';
+import { Wards } from './pages/wards/Wards';
+import { WardDetail } from './pages/wards/WardDetail';
 
 function AppRoutes() {
   const { isLoading } = useAuth();
@@ -53,19 +59,25 @@ function AppRoutes() {
           <Route
             path="admin/*"
             element={
-              <RoleRoute allowedRoles={['admin']}>
+              <RoleRoute allowedRoles={['admin', 'super_admin']}>
                 <Routes>
                   <Route index element={<AdminDashboard />} />
                   <Route path="staff-requests" element={<StaffRequests />} />
-                  <Route path="patients" element={<Patients onViewPatient={() => {}} onCreatePatient={() => {}} />} />
+                  <Route path="patients" element={<Patients />} />
                   <Route path="patients/:id" element={<PatientDetail />} />
-                  <Route path="patients/new" element={<PatientForm isOpen={true} onClose={() => {}} onSubmit={() => {}} />} />
-                  <Route path="doctors" element={<Doctors onCreateDoctor={() => {}} onViewDoctor={() => {}} />} />
-                  <Route path="staff" element={<StaffPage onCreateStaff={() => {}} onViewStaff={() => {}} />} />
-                  <Route path="appointments" element={<Appointments onCreateAppointment={() => {}} onViewAppointment={() => {}} />} />
-                  <Route path="pharmacy" element={<Pharmacy onCreateMedicine={() => {}} onViewMedicine={() => {}} onCreatePrescription={() => {}} />} />
-                  <Route path="laboratory" element={<Laboratory onCreateTest={() => {}} onViewTest={() => {}} />} />
-                  <Route path="billing" element={<Billing onCreateInvoice={() => {}} onViewInvoice={() => {}} />} />
+                  <Route path="patients/new" element={<PatientFormPage />} />
+                  <Route path="doctors" element={<Doctors />} />
+                  <Route path="staff" element={<StaffPage />} />
+                  <Route path="appointments" element={<Appointments />} />
+                  <Route path="pharmacy" element={<Pharmacy />} />
+                  <Route path="laboratory" element={<Laboratory />} />
+                  <Route path="billing" element={<Billing />} />
+                  <Route path="medical-records" element={<MedicalRecords />} />
+                  <Route path="medical-records/:id" element={<MedicalRecordDetail />} />
+                  <Route path="admissions" element={<Admissions />} />
+                  <Route path="admissions/:id" element={<AdmissionDetail />} />
+                  <Route path="wards" element={<Wards />} />
+                  <Route path="wards/:id" element={<WardDetail />} />
                 </Routes>
               </RoleRoute>
             }
@@ -80,8 +92,10 @@ function AppRoutes() {
                   <Route index element={<DoctorDashboard />} />
                   <Route path="profile" element={<DoctorProfile />} />
                   <Route path="profile/setup" element={<ProfileSetup />} />
-                  <Route path="appointments" element={<Appointments onCreateAppointment={() => {}} onViewAppointment={() => {}} />} />
-                  <Route path="patients" element={<Patients onViewPatient={() => {}} onCreatePatient={() => {}} />} />
+                  <Route path="appointments" element={<Appointments />} />
+                  <Route path="patients" element={<Patients />} />
+                  <Route path="medical-records" element={<MedicalRecords />} />
+                  <Route path="medical-records/:id" element={<MedicalRecordDetail />} />
                 </Routes>
               </RoleRoute>
             }
@@ -94,7 +108,7 @@ function AppRoutes() {
               <RoleRoute allowedRoles={['patient']}>
                 <Routes>
                   <Route index element={<PatientDashboard />} />
-                  <Route path="appointments" element={<Appointments onCreateAppointment={() => {}} onViewAppointment={() => {}} />} />
+                  <Route path="appointments" element={<Appointments />} />
                   <Route path="records" element={<PatientDetail />} />
                 </Routes>
               </RoleRoute>
@@ -119,7 +133,7 @@ function AppRoutes() {
             path="pharmacy/*"
             element={
               <RoleRoute allowedRoles={['pharmacist']}>
-                <Pharmacy onCreateMedicine={() => {}} onViewMedicine={() => {}} onCreatePrescription={() => {}} />
+                <Pharmacy />
               </RoleRoute>
             }
           />
@@ -129,7 +143,7 @@ function AppRoutes() {
             path="laboratory/*"
             element={
               <RoleRoute allowedRoles={['lab_technician']}>
-                <Laboratory onCreateTest={() => {}} onViewTest={() => {}} />
+                <Laboratory />
               </RoleRoute>
             }
           />
@@ -149,7 +163,7 @@ function AppRoutes() {
             path="accountant/*"
             element={
               <RoleRoute allowedRoles={['accountant']}>
-                <Billing onCreateInvoice={() => {}} onViewInvoice={() => {}} />
+                <Billing />
               </RoleRoute>
             }
           />
@@ -169,7 +183,17 @@ function AppRoutes() {
             path="receptionist/*"
             element={
               <RoleRoute allowedRoles={['receptionist']}>
-                <Appointments onCreateAppointment={() => {}} onViewAppointment={() => {}} />
+                <Appointments />
+              </RoleRoute>
+            }
+          />
+
+          {/* HR */}
+          <Route
+            path="hr/*"
+            element={
+              <RoleRoute allowedRoles={['hr']}>
+                <div className="p-4">HR Dashboard</div>
               </RoleRoute>
             }
           />

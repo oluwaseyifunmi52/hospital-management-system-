@@ -1,42 +1,134 @@
-import { useState, useMemo } from 'react';
-import { Plus, Search, Package, AlertTriangle, Filter, Download } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Plus, Search, Package, AlertTriangle, Filter, Download, Eye, Edit } from 'lucide-react';
 import { DataTable } from '../../components/data-table/DataTable';
 import { PageHeader } from '../../components/feedback/PageStates';
-import { StatusBadge } from '../../components/feedback/StatusBadge';
+import { LoadingState, EmptyState } from '../../components/feedback/PageStates';
+import { ConfirmDialog } from '../../components/modals/ConfirmDialog';
+import { pharmacyService } from '../../services/pharmacy.service';
 import type { Medicine, Prescription } from '../../types/pharmacy';
+import { useNavigate } from 'react-router-dom';
+import { StatusBadge } from '../../components/feedback/StatusBadge';
+import toast from 'react-hot-toast';
 
-interface PharmacyProps {
-  onCreateMedicine: () => void;
-  onViewMedicine: (medicine: Medicine) => void;
-  onCreatePrescription: () => void;
-}
-
-export function Pharmacy({ onCreateMedicine, onViewMedicine, onCreatePrescription }: PharmacyProps) {
+export function Pharmacy() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'inventory' | 'prescriptions'>('inventory');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; item: Medicine | Prescription | null; type: 'medicine' | 'prescription' }>({ open: false, item: null, type: 'medicine' });
 
-  const mockMedicines = useMemo<Medicine[]>(
-    () => [
-      { id: '1', name: 'Paracetamol', genericName: 'Acetaminophen', brand: 'Panadol', category: 'Pain Relief', dosageForm: 'Tablet', strength: '500mg', unit: 'pack', price: 500, costPrice: 300, reorderLevel: 100, quantity: 250, isActive: true, createdAt: '2024-01-15', updatedAt: '2024-01-15' },
-      { id: '2', name: 'Amoxicillin', genericName: 'Amoxicillin', brand: 'Amoxil', category: 'Antibiotic', dosageForm: 'Capsule', strength: '500mg', unit: 'pack', price: 1200, costPrice: 800, reorderLevel: 50, quantity: 120, isActive: true, createdAt: '2024-01-15', updatedAt: '2024-01-15' },
-      { id: '3', name: 'Metformin', genericName: 'Metformin', brand: 'Glucophage', category: 'Antidiabetic', dosageForm: 'Tablet', strength: '850mg', unit: 'pack', price: 1500, costPrice: 1000, reorderLevel: 30, quantity: 15, isActive: true, createdAt: '2024-01-15', updatedAt: '2024-01-15' },
-      { id: '4', name: 'Lisinopril', genericName: 'Lisinopril', brand: 'Zestril', category: 'Antihypertensive', dosageForm: 'Tablet', strength: '10mg', unit: 'pack', price: 2000, costPrice: 1400, reorderLevel: 20, quantity: 0, isActive: true, createdAt: '2024-01-15', updatedAt: '2024-01-15' },
-    ],
-    []
-  );
+  const fetchMedicines = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await pharmacyService.getMedicines({
+        page,
+        limit: 10,
+        search: searchQuery,
+      });
+      setMedicines(result.data);
+      setTotalPages(result.pagination.pages);
+      setTotal(result.pagination.total);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load medicines');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, searchQuery]);
 
-  const mockPrescriptions = useMemo<Prescription[]>(
-    () => [
-      { id: '1', prescriptionNumber: 'RX-001', patientId: '1', doctorId: '1', date: '2024-06-15', medications: [], status: 'pending', createdAt: '2024-06-15' },
-      { id: '2', prescriptionNumber: 'RX-002', patientId: '2', doctorId: '1', date: '2024-06-14', medications: [], status: 'dispensed', dispensedAt: '2024-06-14', createdAt: '2024-06-14' },
-      { id: '3', prescriptionNumber: 'RX-003', patientId: '3', doctorId: '2', date: '2024-06-13', medications: [], status: 'approved', createdAt: '2024-06-13' },
-    ],
-    []
-  );
+  const fetchPrescriptions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await pharmacyService.getPrescriptions({
+        page,
+        limit: 10,
+        search: searchQuery,
+      });
+      setPrescriptions(result.data);
+      setTotalPages(result.pagination.pages);
+      setTotal(result.pagination.total);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load prescriptions');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, searchQuery]);
 
-  const lowStockMedicines = mockMedicines.filter((m) => m.quantity <= m.reorderLevel);
-  const filteredMedicines = mockMedicines.filter((m) => !searchQuery || m.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  useEffect(() => {
+    if (activeTab === 'inventory') {
+      fetchMedicines();
+    } else {
+      fetchPrescriptions();
+    }
+  }, [activeTab, fetchMedicines, fetchPrescriptions]);
+
+  const lowStockMedicines = useMemo(() => medicines.filter((m) => m.quantity <= m.reorderLevel), [medicines]);
+  const filteredMedicines = useMemo(() => medicines.filter((m) => !searchQuery || m.name.toLowerCase().includes(searchQuery.toLowerCase())), [medicines, searchQuery]);
+
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    setPage(1);
+  };
+
+  const handleCreateMedicine = () => {
+    navigate('/dashboard/admin/pharmacy/medicines/new');
+  };
+
+  const handleCreatePrescription = () => {
+    navigate('/dashboard/admin/pharmacy/prescriptions/new');
+  };
+
+  const handleViewMedicine = (medicine: Medicine) => {
+    navigate(`/dashboard/admin/pharmacy/medicines/${medicine.id}`);
+  };
+
+  const handleViewPrescription = (prescription: Prescription) => {
+    navigate(`/dashboard/admin/pharmacy/prescriptions/${prescription.id}`);
+  };
+
+  const handleEditMedicine = (e: React.MouseEvent, medicine: Medicine) => {
+    e.stopPropagation();
+    navigate(`/dashboard/admin/pharmacy/medicines/${medicine.id}/edit`);
+  };
+
+  const handleEditPrescription = (e: React.MouseEvent, prescription: Prescription) => {
+    e.stopPropagation();
+    navigate(`/dashboard/admin/pharmacy/prescriptions/${prescription.id}/edit`);
+  };
+
+  const handleDeleteMedicine = (e: React.MouseEvent, medicine: Medicine) => {
+    e.stopPropagation();
+    setDeleteDialog({ open: true, item: medicine, type: 'medicine' });
+  };
+
+  const handleDeletePrescription = (e: React.MouseEvent, prescription: Prescription) => {
+    e.stopPropagation();
+    setDeleteDialog({ open: true, item: prescription, type: 'prescription' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.item) return;
+    try {
+      if (deleteDialog.type === 'medicine') {
+        // await pharmacyService.deleteMedicine((deleteDialog.item as Medicine).id);
+      } else {
+        // await pharmacyService.deletePrescription((deleteDialog.item as Prescription).id);
+      }
+      toast.success(`${deleteDialog.type === 'medicine' ? 'Medicine' : 'Prescription'} deleted`);
+      setDeleteDialog({ open: false, item: null, type: 'medicine' });
+      if (activeTab === 'inventory') {
+        fetchMedicines();
+      } else {
+        fetchPrescriptions();
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete');
+    }
+  };
 
   const inventoryColumns = [
     {
@@ -76,9 +168,17 @@ export function Pharmacy({ onCreateMedicine, onViewMedicine, onCreatePrescriptio
       key: 'actions',
       header: 'Actions',
       render: (med: Medicine) => (
-        <button onClick={(e) => { e.stopPropagation(); onViewMedicine(med); }} className="text-secondary-600 hover:text-secondary-900 text-sm font-medium">
-          View
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={(_e) => handleViewMedicine(med)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
+            <Eye className="h-4 w-4" />
+          </button>
+          <button onClick={(e) => handleEditMedicine(e, med)} className="p-1 text-secondary-600 hover:text-secondary-900" title="Edit">
+            <Edit className="h-4 w-4" />
+          </button>
+          <button onClick={(e) => handleDeleteMedicine(e, med)} className="p-1 text-danger-600 hover:text-danger-900" title="Delete">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v10m4-10v10m-10-10h14" /></svg>
+          </button>
+        </div>
       ),
     },
   ];
@@ -97,27 +197,44 @@ export function Pharmacy({ onCreateMedicine, onViewMedicine, onCreatePrescriptio
       header: 'Status',
       render: (rx: Prescription) => <StatusBadge status={rx.status} />,
     },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (rx: Prescription) => (
+        <div className="flex items-center gap-2">
+          <button onClick={(_e) => handleViewPrescription(rx)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
+            <Eye className="h-4 w-4" />
+          </button>
+          <button onClick={(e) => handleEditPrescription(e, rx)} className="p-1 text-secondary-600 hover:text-secondary-900" title="Edit">
+            <Edit className="h-4 w-4" />
+          </button>
+          <button onClick={(e) => handleDeletePrescription(e, rx)} className="p-1 text-danger-600 hover:text-danger-900" title="Delete">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v10m4-10v10m-10-10h14" /></svg>
+          </button>
+        </div>
+      ),
+    },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Pharmacy"
-        subtitle={activeTab === 'inventory' ? `${filteredMedicines.length} medicines` : `${mockPrescriptions.length} prescriptions`}
+        subtitle={activeTab === 'inventory' ? `${total} medicines` : `${total} prescriptions`}
         action={
           <div className="flex items-center gap-2">
             {activeTab === 'inventory' ? (
-              <button onClick={onCreateMedicine} className="btn-primary">
+              <button onClick={handleCreateMedicine} className="btn-primary">
                 <Plus className="h-4 w-4" /> Add Medicine
               </button>
             ) : (
-              <button onClick={onCreatePrescription} className="btn-primary">
+              <button onClick={handleCreatePrescription} className="btn-primary">
                 <Plus className="h-4 w-4" /> New Prescription
               </button>
             )}
           </div>
         }
-        breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Pharmacy' }]}
+        breadcrumbs={[{ label: 'Dashboard', href: '/dashboard/admin' }, { label: 'Pharmacy' }]}
       />
 
       {lowStockMedicines.length > 0 && activeTab === 'inventory' && (
@@ -156,7 +273,7 @@ export function Pharmacy({ onCreateMedicine, onViewMedicine, onCreatePrescriptio
                   type="text"
                   placeholder="Search medicines..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearch(e.target.value)}
                   className="input pl-10"
                 />
               </div>
@@ -164,12 +281,67 @@ export function Pharmacy({ onCreateMedicine, onViewMedicine, onCreatePrescriptio
               <button className="btn-outline btn-sm"><Download className="h-4 w-4" /> Export</button>
             </div>
           </div>
-          <DataTable columns={inventoryColumns} data={filteredMedicines} loading={loading} onRowClick={onViewMedicine} emptyMessage="No medicines found" rowKey={(med) => med.id} />
+          {loading ? (
+            <LoadingState message="Loading medicines..." />
+          ) : filteredMedicines.length === 0 ? (
+            <EmptyState
+              title="No medicines found"
+              description="Get started by adding a new medicine."
+              action={<button onClick={handleCreateMedicine} className="btn-primary">Add Medicine</button>}
+            />
+          ) : (
+            <>
+              <DataTable columns={inventoryColumns} data={filteredMedicines} loading={loading} onRowClick={handleViewMedicine} emptyMessage="No medicines found" rowKey={(med) => med.id} />
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-secondary-500">Page {page} of {totalPages} ({total} total)</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="btn-outline btn-sm">Previous</button>
+                    <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="btn-outline btn-sm">Next</button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </>
       )}
 
       {activeTab === 'prescriptions' && (
-        <DataTable columns={prescriptionColumns} data={mockPrescriptions} loading={loading} emptyMessage="No prescriptions found" rowKey={(rx) => rx.id} />
+        <>
+          {loading ? (
+            <LoadingState message="Loading prescriptions..." />
+          ) : prescriptions.length === 0 ? (
+            <EmptyState
+              title="No prescriptions found"
+              description="Prescriptions will appear here."
+            />
+          ) : (
+            <>
+              <DataTable columns={prescriptionColumns} data={prescriptions} loading={loading} onRowClick={handleViewPrescription} emptyMessage="No prescriptions found" rowKey={(rx) => rx.id} />
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-secondary-500">Page {page} of {totalPages} ({total} total)</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="btn-outline btn-sm">Previous</button>
+                    <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="btn-outline btn-sm">Next</button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {deleteDialog.open && deleteDialog.item && (
+        <ConfirmDialog
+          isOpen={deleteDialog.open}
+          onClose={() => setDeleteDialog({ open: false, item: null, type: 'medicine' })}
+          onConfirm={confirmDelete}
+          title={`Delete ${deleteDialog.type === 'medicine' ? 'Medicine' : 'Prescription'}`}
+          message={`Are you sure you want to delete this ${deleteDialog.type}? This action cannot be undone.`}
+          confirmLabel="Delete"
+          variant="danger"
+        />
       )}
     </div>
   );

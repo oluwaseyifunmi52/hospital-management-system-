@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
@@ -8,7 +8,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig) => {
     const stored = localStorage.getItem('auth_tokens');
     if (stored) {
       try {
@@ -42,10 +42,31 @@ const processQueue = (error: unknown, token: string | null) => {
   failedQueue = [];
 };
 
+const refreshAccessToken = async (): Promise<string> => {
+  const stored = localStorage.getItem('auth_tokens');
+  if (!stored) {
+    throw new Error('No refresh token available');
+  }
+
+  const { refreshToken } = JSON.parse(stored);
+  const baseURL = api.defaults.baseURL?.replace(/\/api\/v1$/, '') || 'http://localhost:5000';
+  const response = await axios.post(`${baseURL}/api/v1/auth/refresh-token`, { refreshToken });
+
+  const newTokens = {
+    accessToken: response.data.data.accessToken,
+    refreshToken: response.data.data.refreshToken || refreshToken,
+  };
+
+  localStorage.setItem('auth_tokens', JSON.stringify(newTokens));
+  api.defaults.headers.common.Authorization = `Bearer ${newTokens.accessToken}`;
+
+  return newTokens.accessToken;
+};
+
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       if (isRefreshing) {
@@ -62,47 +83,28 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const stored = localStorage.getItem('auth_tokens');
-      if (!stored) {
-        isRefreshing = false;
-        localStorage.removeItem('auth_tokens');
-        localStorage.removeItem('auth_user');
-        window.location.href = '/login';
-        return Promise.reject(error);
-      }
-
       try {
-        const { refreshToken } = JSON.parse(stored);
-        const { data } = await axios.post(
-          `${api.defaults.baseURL}/auth/refresh-token`,
-          { refreshToken }
-        );
-
-        const newTokens = {
-          accessToken: data.data.accessToken,
-          refreshToken: data.data.refreshToken || refreshToken,
-        };
-
-        localStorage.setItem('auth_tokens', JSON.stringify(newTokens));
-        api.defaults.headers.common.Authorization = `Bearer ${newTokens.accessToken}`;
-        originalRequest.headers.Authorization = `Bearer ${newTokens.accessToken}`;
-
-        processQueue(null, newTokens.accessToken);
+        const newAccessToken = await refreshAccessToken();
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        processQueue(null, newAccessToken);
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
         localStorage.removeItem('auth_tokens');
         localStorage.removeItem('auth_user');
-        window.location.href = '/login';
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
 
+    const errorData = error.response?.data as { message?: string; errors?: Array<{ field: string; message: string }> } | undefined;
     const message =
-      error.response?.data?.message ||
-      error.response?.data?.errors?.[0]?.message ||
+      errorData?.message ||
+      errorData?.errors?.[0]?.message ||
       error.message ||
       'Something went wrong';
 

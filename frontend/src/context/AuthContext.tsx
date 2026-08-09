@@ -1,11 +1,13 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User, AuthTokens, AuthState } from '../types/user';
+import { authService } from '../services/auth.service';
 
 interface AuthContextType extends AuthState {
   login: (tokens: AuthTokens, user: User) => void;
   logout: () => void;
   setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,30 +21,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error: null,
   });
 
-  useEffect(() => {
+  const refreshUser = useCallback(async () => {
     const storedTokens = localStorage.getItem('auth_tokens');
     const storedUser = localStorage.getItem('auth_user');
 
-    if (storedTokens && storedUser) {
-      try {
-        const tokens = JSON.parse(storedTokens);
-        const user = JSON.parse(storedUser);
-        setState({
-          user,
-          tokens,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-        });
-      } catch {
-        localStorage.removeItem('auth_tokens');
-        localStorage.removeItem('auth_user');
-        setState(prev => ({ ...prev, isLoading: false }));
-      }
-    } else {
+    if (!storedTokens || !storedUser) {
       setState(prev => ({ ...prev, isLoading: false }));
+      return;
+    }
+
+    try {
+      const tokens = JSON.parse(storedTokens);
+      
+      // Validate token by calling /auth/me
+      const freshUser = await authService.getMe();
+      
+      localStorage.setItem('auth_user', JSON.stringify(freshUser));
+      setState({
+        user: freshUser,
+        tokens,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
+    } catch {
+      localStorage.removeItem('auth_tokens');
+      localStorage.removeItem('auth_user');
+      setState({
+        user: null,
+        tokens: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: 'Session expired. Please login again.',
+      });
     }
   }, []);
+
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
 
   const login = (tokens: AuthTokens, user: User) => {
     localStorage.setItem('auth_tokens', JSON.stringify(tokens));
@@ -78,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, setUser, setLoading }}>
+    <AuthContext.Provider value={{ ...state, login, logout, setUser, setLoading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

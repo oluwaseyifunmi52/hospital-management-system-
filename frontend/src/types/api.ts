@@ -27,4 +27,18 @@ export interface QueryParams {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   filters?: Record<string, unknown>;
+  // Common filter properties
+  status?: string;
+  type?: string;
+  category?: string;
+  startDate?: string;
+  endDate?: string;
+  patientId?: string;
+  doctorId?: string;
+  departmentId?: string;
+  branchId?: string;
+  staffId?: string;
+  account?: string;
+  unreadOnly?: boolean;
+  lowStock?: boolean;
 }

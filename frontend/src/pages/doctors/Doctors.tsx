@@ -1,96 +1,95 @@
-import { useState, useMemo } from 'react';
-import { Plus, Search, Star } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Search, Eye, Edit } from 'lucide-react';
 import { DataTable } from '../../components/data-table/DataTable';
 import { PageHeader } from '../../components/feedback/PageStates';
+import { LoadingState, EmptyState } from '../../components/feedback/PageStates';
+import { ConfirmDialog } from '../../components/modals/ConfirmDialog';
+import { doctorService } from '../../services/doctor.service';
+import type { DoctorProfile, AvailabilityStatus } from '../../types/doctor';
+import { useNavigate } from 'react-router-dom';
 import { StatusBadge } from '../../components/feedback/StatusBadge';
-import type { DoctorProfile } from '../../types/doctor';
+import toast from 'react-hot-toast';
 
-interface DoctorsProps {
-  onCreateDoctor: () => void;
-  onViewDoctor: (doctor: DoctorProfile) => void;
-}
-
-export function Doctors({ onCreateDoctor, onViewDoctor }: DoctorsProps) {
+export function Doctors() {
+  const navigate = useNavigate();
+  const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
-  const [loading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | AvailabilityStatus>('all');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; doctor: DoctorProfile | null }>({ open: false, doctor: null });
 
-  const mockDoctors = useMemo<DoctorProfile[]>(
-    () => [
-      {
-        id: '1',
-        userId: '1',
-        firstName: 'James',
-        lastName: 'Smith',
-        email: 'dr.smith@hospital.com',
-        phone: '+234 801 111 1111',
-        title: 'Dr.',
-        specialty: 'Cardiology',
-        department: 'Cardiology',
-        licenseNumber: 'MD-12345',
-        yearsExperience: 15,
-        qualifications: ['MBBS', 'MD Cardiology'],
-        certifications: ['Board Certified Cardiologist'],
-        expertise: ['Heart Failure', 'Hypertension'],
-        languages: ['English', 'Spanish'],
-        bio: 'Experienced cardiologist with 15 years of practice.',
-        services: [{ id: '1', name: 'Consultation', fee: 15000, duration: 30, isActive: true }],
-        consultationFee: 15000,
-        inPersonConsultation: true,
-        videoConsultation: true,
-        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        workingHours: { start: '08:00', end: '17:00' },
-        availabilityStatus: 'available',
-        rating: 4.8,
-        reviewCount: 120,
-        isProfileComplete: true,
-        isActive: true,
-        createdAt: '2024-01-15',
-        updatedAt: '2024-01-15',
-      },
-      {
-        id: '2',
-        userId: '2',
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        email: 'dr.johnson@hospital.com',
-        phone: '+234 802 222 2222',
-        title: 'Dr.',
-        specialty: 'Pediatrics',
-        department: 'Pediatrics',
-        licenseNumber: 'MD-67890',
-        yearsExperience: 10,
-        qualifications: ['MBBS', 'MD Pediatrics'],
-        certifications: ['Board Certified Pediatrician'],
-        expertise: ['Child Care', 'Vaccination'],
-        languages: ['English', 'French'],
-        bio: 'Dedicated pediatrician specializing in child healthcare.',
-        services: [{ id: '2', name: 'Consultation', fee: 12000, duration: 30, isActive: true }],
-        consultationFee: 12000,
-        inPersonConsultation: true,
-        videoConsultation: false,
-        workingDays: ['Monday', 'Wednesday', 'Friday'],
-        workingHours: { start: '09:00', end: '16:00' },
-        availabilityStatus: 'busy',
-        rating: 4.9,
-        reviewCount: 85,
-        isProfileComplete: true,
-        isActive: true,
-        createdAt: '2024-02-20',
-        updatedAt: '2024-02-20',
-      },
-    ],
-    []
-  );
+  const fetchDoctors = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await doctorService.getDoctors({
+        page,
+        limit: 10,
+        search: searchQuery,
+        department: departmentFilter === 'all' ? undefined : departmentFilter,
+        status: statusFilter === 'all' ? undefined : statusFilter as AvailabilityStatus,
+      });
+      setDoctors(result.data);
+      setTotalPages(result.pagination.pages);
+      setTotal(result.pagination.total);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load doctors');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, searchQuery, departmentFilter, statusFilter]);
 
-  const filteredDoctors = mockDoctors.filter((doctor) => {
-    const matchesSearch =
-      !searchQuery ||
-      `${doctor.firstName} ${doctor.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesDepartment = departmentFilter === 'all' || doctor.department === departmentFilter;
-    return matchesSearch && matchesDepartment;
-  });
+  useEffect(() => {
+    fetchDoctors();
+  }, [fetchDoctors]);
+
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    setPage(1);
+  };
+
+  const handleDepartmentChange = (value: string) => {
+    setDepartmentFilter(value);
+    setPage(1);
+  };
+
+  const handleStatusChange = (value: 'all' | AvailabilityStatus) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
+
+  const handleViewDoctor = (doctor: DoctorProfile) => {
+    navigate(`/dashboard/admin/doctors/${doctor.id}`);
+  };
+
+  const handleCreateDoctor = () => {
+    navigate('/dashboard/admin/doctors/new');
+  };
+
+  const handleEditDoctor = (e: React.MouseEvent, doctor: DoctorProfile) => {
+    e.stopPropagation();
+    navigate(`/dashboard/admin/doctors/${doctor.id}/edit`);
+  };
+
+  const handleDeleteDoctor = (e: React.MouseEvent, doctor: DoctorProfile) => {
+    e.stopPropagation();
+    setDeleteDialog({ open: true, doctor });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.doctor) return;
+    try {
+      // await doctorService.deleteDoctor(deleteDialog.doctor.id); // Not implemented yet
+      toast.success('Doctor deleted');
+      setDeleteDialog({ open: false, doctor: null });
+      fetchDoctors();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete doctor');
+    }
+  };
 
   const columns = [
     {
@@ -114,7 +113,7 @@ export function Doctors({ onCreateDoctor, onViewDoctor }: DoctorsProps) {
       header: 'Rating',
       render: (doctor: DoctorProfile) => (
         <div className="flex items-center gap-1">
-          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+          <svg className="h-4 w-4 text-yellow-500 fill-yellow-500" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
           <span className="text-sm font-medium">{doctor.rating}</span>
           <span className="text-sm text-secondary-500">({doctor.reviewCount})</span>
         </div>
@@ -134,15 +133,31 @@ export function Doctors({ onCreateDoctor, onViewDoctor }: DoctorsProps) {
       key: 'actions',
       header: 'Actions',
       render: (doctor: DoctorProfile) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewDoctor(doctor);
-          }}
-          className="text-secondary-600 hover:text-secondary-900 text-sm font-medium"
-        >
-          View Profile
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(_e) => handleViewDoctor(doctor)}
+            className="p-1 text-secondary-600 hover:text-secondary-900"
+            title="View"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => handleEditDoctor(e, doctor)}
+            className="p-1 text-secondary-600 hover:text-secondary-900"
+            title="Edit"
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => handleDeleteDoctor(e, doctor)}
+            className="p-1 text-danger-600 hover:text-danger-900"
+            title="Delete"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v10m4-10v10m-10-10h14" />
+            </svg>
+          </button>
+        </div>
       ),
     },
   ];
@@ -151,13 +166,13 @@ export function Doctors({ onCreateDoctor, onViewDoctor }: DoctorsProps) {
     <div className="space-y-6">
       <PageHeader
         title="Doctors"
-        subtitle={`${filteredDoctors.length} doctors found`}
+        subtitle={`${total} doctors found`}
         action={
-          <button onClick={onCreateDoctor} className="btn-primary">
+          <button onClick={handleCreateDoctor} className="btn-primary">
             <Plus className="h-4 w-4" /> Add Doctor
           </button>
         }
-        breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Doctors' }]}
+        breadcrumbs={[{ label: 'Dashboard', href: '/dashboard/admin' }, { label: 'Doctors' }]}
       />
 
       <div className="card p-4">
@@ -168,28 +183,82 @@ export function Doctors({ onCreateDoctor, onViewDoctor }: DoctorsProps) {
               type="text"
               placeholder="Search doctors by name or specialty..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="input pl-10"
             />
           </div>
-          <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="input w-48">
+          <select value={departmentFilter} onChange={(e) => handleDepartmentChange(e.target.value)} className="input w-48">
             <option value="all">All Departments</option>
             <option value="Cardiology">Cardiology</option>
             <option value="Neurology">Neurology</option>
             <option value="Pediatrics">Pediatrics</option>
             <option value="Orthopedics">Orthopedics</option>
+            <option value="Emergency Medicine">Emergency Medicine</option>
+            <option value="Internal Medicine">Internal Medicine</option>
+          </select>
+          <select value={statusFilter} onChange={(e) => handleStatusChange(e.target.value as 'all' | AvailabilityStatus)} className="input w-40">
+            <option value="all">All Status</option>
+            <option value="available">Available</option>
+            <option value="busy">Busy</option>
+            <option value="off_duty">Off Duty</option>
           </select>
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filteredDoctors}
-        loading={loading}
-        onRowClick={onViewDoctor}
-        emptyMessage="No doctors found"
-        rowKey={(doctor) => doctor.id}
-      />
+      {loading ? (
+        <LoadingState message="Loading doctors..." />
+      ) : doctors.length === 0 ? (
+        <EmptyState
+          title="No doctors found"
+          description="Get started by adding a new doctor."
+          action={<button onClick={handleCreateDoctor} className="btn-primary">Add Doctor</button>}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={doctors}
+          loading={loading}
+          onRowClick={handleViewDoctor}
+          emptyMessage="No doctors found"
+          rowKey={(doctor) => doctor.id}
+        />
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-secondary-500">
+            Page {page} of {totalPages} ({total} total)
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="btn-outline btn-sm"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="btn-outline btn-sm"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
+      {deleteDialog.open && deleteDialog.doctor && (
+        <ConfirmDialog
+          isOpen={deleteDialog.open}
+          onClose={() => setDeleteDialog({ open: false, doctor: null })}
+          onConfirm={confirmDelete}
+          title="Delete Doctor"
+          message={`Are you sure you want to delete Dr. ${deleteDialog.doctor.firstName} ${deleteDialog.doctor.lastName}? This action cannot be undone.`}
+          confirmLabel="Delete"
+          variant="danger"
+        />
+      )}
     </div>
   );
 }
