@@ -46,6 +46,19 @@ export const authService = {
     return res.data.data;
   },
 
+  async updateProfile(data: Partial<User>): Promise<User> {
+    const res = await api.put<ApiResponse<User>>('/auth/profile', data);
+    return res.data.data;
+  },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    const res = await api.post<ApiResponse<{ message: string }>>('/auth/change-password', {
+      currentPassword,
+      newPassword,
+    });
+    return res.data.data;
+  },
+
   async logout(): Promise<void> {
     try {
       await api.post('/auth/logout');

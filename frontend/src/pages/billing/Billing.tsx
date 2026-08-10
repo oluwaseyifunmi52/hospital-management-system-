@@ -143,7 +143,7 @@ export function Billing() {
       header: 'Actions',
       render: (inv: Invoice) => (
         <div className="flex items-center gap-2">
-          <button onClick={(_e) => handleViewInvoice(inv)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
+          <button onClick={() => handleViewInvoice(inv)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
             <Eye className="h-4 w-4" />
           </button>
           <button onClick={(e) => handleEditInvoice(e, inv)} className="p-1 text-secondary-600 hover:text-secondary-900" title="Edit">

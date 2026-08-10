@@ -125,7 +125,7 @@ export function Laboratory() {
       header: 'Actions',
       render: (test: LabTest) => (
         <div className="flex items-center gap-2">
-          <button onClick={(_e) => handleViewTest(test)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
+          <button onClick={() => handleViewTest(test)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
             <Eye className="h-4 w-4" />
           </button>
           <button onClick={(e) => handleEditTest(e, test)} className="p-1 text-secondary-600 hover:text-secondary-900" title="Edit">

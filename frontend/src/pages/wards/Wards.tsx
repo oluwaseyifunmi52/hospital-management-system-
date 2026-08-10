@@ -107,7 +107,7 @@ export function Wards() {
       header: 'Actions',
       render: (ward: Ward) => (
         <div className="flex items-center gap-2">
-          <button onClick={(_e) => handleViewWard(ward)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
+          <button onClick={() => handleViewWard(ward)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
             <Eye className="h-4 w-4" />
           </button>
           <button onClick={(e) => handleEditWard(e, ward)} className="p-1 text-secondary-600 hover:text-secondary-900" title="Edit">

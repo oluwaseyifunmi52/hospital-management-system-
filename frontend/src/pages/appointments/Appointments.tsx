@@ -139,7 +139,7 @@ export function Appointments() {
       render: (apt: Appointment) => (
         <div className="flex items-center gap-2">
           <button
-            onClick={(_e) => handleViewAppointment(apt)}
+            onClick={() => handleViewAppointment(apt)}
             className="p-1 text-secondary-600 hover:text-secondary-900"
             title="View"
           >

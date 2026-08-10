@@ -109,7 +109,7 @@ export function Patients() {
       render: (patient: Patient) => (
         <div className="flex items-center gap-2">
           <button
-            onClick={(_e) => handleViewPatient(patient)}
+            onClick={() => handleViewPatient(patient)}
             className="p-1 text-secondary-600 hover:text-secondary-900"
             title="View"
           >

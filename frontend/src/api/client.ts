@@ -5,20 +5,36 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
+
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+}
+
+function getStoredTokens(): { accessToken: string; refreshToken: string } | null {
+  const stored = localStorage.getItem('auth_tokens');
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return null;
+  }
+}
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const stored = localStorage.getItem('auth_tokens');
-    if (stored) {
-      try {
-        const tokens = JSON.parse(stored);
-        if (tokens.accessToken) {
-          config.headers.Authorization = `Bearer ${tokens.accessToken}`;
-        }
-      } catch {
-        // ignore
+    const tokens = getStoredTokens();
+    if (tokens?.accessToken) {
+      if (isTokenExpired(tokens.accessToken)) {
+        return Promise.reject(new Error('Token expired'));
       }
+      config.headers.Authorization = `Bearer ${tokens.accessToken}`;
     }
     return config;
   },
@@ -43,18 +59,19 @@ const processQueue = (error: unknown, token: string | null) => {
 };
 
 const refreshAccessToken = async (): Promise<string> => {
-  const stored = localStorage.getItem('auth_tokens');
-  if (!stored) {
+  const tokens = getStoredTokens();
+  if (!tokens?.refreshToken) {
     throw new Error('No refresh token available');
   }
 
-  const { refreshToken } = JSON.parse(stored);
   const baseURL = api.defaults.baseURL?.replace(/\/api\/v1$/, '') || 'http://localhost:5000';
-  const response = await axios.post(`${baseURL}/api/v1/auth/refresh-token`, { refreshToken });
+  const response = await axios.post(`${baseURL}/api/v1/auth/refresh-token`, {
+    refreshToken: tokens.refreshToken,
+  });
 
   const newTokens = {
     accessToken: response.data.data.accessToken,
-    refreshToken: response.data.data.refreshToken || refreshToken,
+    refreshToken: response.data.data.refreshToken || tokens.refreshToken,
   };
 
   localStorage.setItem('auth_tokens', JSON.stringify(newTokens));

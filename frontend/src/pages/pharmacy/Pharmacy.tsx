@@ -169,7 +169,7 @@ export function Pharmacy() {
       header: 'Actions',
       render: (med: Medicine) => (
         <div className="flex items-center gap-2">
-          <button onClick={(_e) => handleViewMedicine(med)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
+          <button onClick={() => handleViewMedicine(med)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
             <Eye className="h-4 w-4" />
           </button>
           <button onClick={(e) => handleEditMedicine(e, med)} className="p-1 text-secondary-600 hover:text-secondary-900" title="Edit">
@@ -202,7 +202,7 @@ export function Pharmacy() {
       header: 'Actions',
       render: (rx: Prescription) => (
         <div className="flex items-center gap-2">
-          <button onClick={(_e) => handleViewPrescription(rx)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
+          <button onClick={() => handleViewPrescription(rx)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
             <Eye className="h-4 w-4" />
           </button>
           <button onClick={(e) => handleEditPrescription(e, rx)} className="p-1 text-secondary-600 hover:text-secondary-900" title="Edit">

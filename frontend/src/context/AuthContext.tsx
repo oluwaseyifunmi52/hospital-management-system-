@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User, AuthTokens, AuthState } from '../types/user';
 import { authService } from '../services/auth.service';
+import { isTokenExpired } from '../utils/token';
 
 interface AuthContextType extends AuthState {
   login: (tokens: AuthTokens, user: User) => void;
@@ -8,16 +9,46 @@ interface AuthContextType extends AuthState {
   setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
   refreshUser: () => Promise<void>;
+  updateTokens: (tokens: AuthTokens) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function getStoredAuth(): { tokens: AuthTokens | null; user: User | null } {
+  const storedTokens = localStorage.getItem('auth_tokens');
+  const storedUser = localStorage.getItem('auth_user');
+
+  let tokens: AuthTokens | null = null;
+  let user: User | null = null;
+
+  if (storedTokens) {
+    try {
+      tokens = JSON.parse(storedTokens);
+    } catch {
+      localStorage.removeItem('auth_tokens');
+    }
+  }
+
+  if (storedUser) {
+    try {
+      user = JSON.parse(storedUser);
+    } catch {
+      localStorage.removeItem('auth_user');
+    }
+  }
+
+  return { tokens, user };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { tokens, user } = getStoredAuth();
+  const initialLoading = !!(tokens && user);
+
   const [state, setState] = useState<AuthState>({
-    user: null,
-    tokens: null,
-    isAuthenticated: false,
-    isLoading: true,
+    user,
+    tokens,
+    isAuthenticated: !!(tokens && user && !isTokenExpired(tokens.accessToken)),
+    isLoading: initialLoading,
     error: null,
   });
 
@@ -26,16 +57,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedUser = localStorage.getItem('auth_user');
 
     if (!storedTokens || !storedUser) {
-      setState(prev => ({ ...prev, isLoading: false }));
+      setState(prev => ({ ...prev, isLoading: false, isAuthenticated: false, user: null, tokens: null }));
       return;
     }
 
     try {
       const tokens = JSON.parse(storedTokens);
-      
-      // Validate token by calling /auth/me
+
+      if (isTokenExpired(tokens.accessToken)) {
+        throw new Error('Token expired');
+      }
+
       const freshUser = await authService.getMe();
-      
+
       localStorage.setItem('auth_user', JSON.stringify(freshUser));
       setState({
         user: freshUser,
@@ -74,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    authService.logout().catch(() => {});
     localStorage.removeItem('auth_tokens');
     localStorage.removeItem('auth_user');
     setState({
@@ -94,8 +129,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, isLoading }));
   };
 
+  const updateTokens = (tokens: AuthTokens) => {
+    localStorage.setItem('auth_tokens', JSON.stringify(tokens));
+    setState(prev => ({ ...prev, tokens }));
+  };
+
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, setUser, setLoading, refreshUser }}>
+    <AuthContext.Provider value={{ ...state, login, logout, setUser, setLoading, refreshUser, updateTokens }}>
       {children}
     </AuthContext.Provider>
   );

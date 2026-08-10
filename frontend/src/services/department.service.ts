@@ -1,5 +1,6 @@
 import api from '../api/client';
 import type { Department, Branch, CostCenter } from '../types/department';
+import type { Staff } from '../types/staff';
 import type { PaginatedResponse, QueryParams } from '../types/api';
 
 interface ApiResponse<T> {
@@ -40,8 +41,8 @@ export const departmentService = {
     await api.delete(`/departments/${id}`);
   },
 
-  async getDepartmentStaff(departmentId: string): Promise<any[]> {
-    const res = await api.get<ApiResponse<any[]>>(`/departments/${departmentId}/staff`);
+  async getDepartmentStaff(departmentId: string): Promise<Staff[]> {
+    const res = await api.get<ApiResponse<Staff[]>>(`/departments/${departmentId}/staff`);
     return res.data.data;
   },
 

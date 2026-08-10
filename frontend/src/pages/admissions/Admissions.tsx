@@ -97,7 +97,7 @@ export function Admissions() {
       header: 'Actions',
       render: (adm: Admission) => (
         <div className="flex items-center gap-2">
-          <button onClick={(_e) => handleViewAdmission(adm)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
+          <button onClick={() => handleViewAdmission(adm)} className="p-1 text-secondary-600 hover:text-secondary-900" title="View">
             <Eye className="h-4 w-4" />
           </button>
           <button onClick={(e) => handleEditAdmission(e, adm)} className="p-1 text-secondary-600 hover:text-secondary-900" title="Edit">

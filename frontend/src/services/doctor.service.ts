@@ -8,6 +8,17 @@ interface ApiResponse<T> {
   message?: string;
 }
 
+interface DoctorSchedule {
+  id: string;
+  doctorId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface DoctorFilters extends QueryParams {
   search?: string;
   department?: string;
@@ -63,13 +74,13 @@ export const doctorService = {
     return res.data.data;
   },
 
-  async getSchedule(doctorId: string, startDate: string, endDate: string): Promise<any[]> {
-    const res = await api.get<ApiResponse<any[]>>(`/doctors/${doctorId}/schedule?startDate=${startDate}&endDate=${endDate}`);
+  async getSchedule(doctorId: string, startDate: string, endDate: string): Promise<DoctorSchedule[]> {
+    const res = await api.get<ApiResponse<DoctorSchedule[]>>(`/doctors/${doctorId}/schedule?startDate=${startDate}&endDate=${endDate}`);
     return res.data.data;
   },
 
-  async updateSchedule(doctorId: string, schedule: any[]): Promise<any[]> {
-    const res = await api.put<ApiResponse<any[]>>(`/doctors/${doctorId}/schedule`, schedule);
+  async updateSchedule(doctorId: string, schedule: DoctorSchedule[]): Promise<DoctorSchedule[]> {
+    const res = await api.put<ApiResponse<DoctorSchedule[]>>(`/doctors/${doctorId}/schedule`, schedule);
     return res.data.data;
   },
 

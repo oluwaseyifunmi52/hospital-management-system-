@@ -130,7 +130,7 @@ export function StaffPage() {
       render: (member: Staff) => (
         <div className="flex items-center gap-2">
           <button
-            onClick={(_e) => handleViewStaff(member)}
+            onClick={() => handleViewStaff(member)}
             className="p-1 text-secondary-600 hover:text-secondary-900"
             title="View"
           >
